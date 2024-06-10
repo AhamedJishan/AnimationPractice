@@ -4,20 +4,19 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-
-    private const float WALKSPEED = 2f;
-    private const float RUNSPEED = 8f;
-
-    [SerializeField] private float speed = 0f;
+    [SerializeField] private float walkSpeed = 0f;
+    [SerializeField] private float runSpeed = 0f;
     [SerializeField] private float accelaration = 3f;
     [SerializeField] private float turnspeed = 10f;
-    [SerializeField] private float gravity = 9.8f;
+    [SerializeField] private float gravity = -9.8f;
     [SerializeField] private Transform camera;
 
     private CharacterController characterController;
     private Animator animator;
 
     private Vector3 moveDirection = Vector3.zero;
+    private Vector3 velocity;
+    private float speed;
 
     // Start is called before the first frame update
     void Start()
@@ -27,15 +26,16 @@ public class PlayerController : MonoBehaviour
 
         if (!characterController) Debug.Log("Character Controller component not found!");
         if (!animator) Debug.Log("Animator component not found!");
+
+        speed = walkSpeed;
     }
 
     // Update is called once per frame
-    void Update()
-    {
+    void Update() {
         if (Input.GetKey(KeyCode.LeftShift)) {
-            speed = Mathf.Lerp(speed, RUNSPEED, Time.deltaTime);
+            speed = Mathf.Lerp(speed, runSpeed, accelaration * Time.deltaTime);
         } else {
-            speed = Mathf.Lerp(speed, WALKSPEED, Time.deltaTime);
+            speed = Mathf.Lerp(speed, walkSpeed, accelaration * Time.deltaTime);
         }
 
         // Getting the inputs for movement
@@ -51,8 +51,7 @@ public class PlayerController : MonoBehaviour
 
         moveDirection = (forward * vertical + right * horizontal).normalized;
 
-        if (moveDirection != Vector3.zero)
-        {
+        if (moveDirection != Vector3.zero) {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnspeed * Time.deltaTime);
         }
@@ -65,7 +64,13 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("Speed", characterXZVelocity.magnitude);
 
         // Apply Gravity
-        if (!characterController.isGrounded) characterController.Move(new Vector3(0f, -gravity * Time.deltaTime, 0f));
+        if (characterController.isGrounded) {
+            velocity.y = -1f;
+        } else {
+            velocity.y += gravity * Time.deltaTime;
+            characterController.Move(velocity * Time.deltaTime);
+        }
+
         // Move the Character
         characterController.Move(moveDirection * Time.deltaTime);
     }
